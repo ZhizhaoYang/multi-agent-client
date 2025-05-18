@@ -25,7 +25,7 @@ const ChatSender: React.FC<ChatSenderProps> = ({ handleSubmit, isLoading }) => {
                 onChange={(v) => {
                     setValue(v);
                 }}
-                disabled={isLoading}
+                // disabled={isLoading}
                 onSubmit={() => {
                     if (!value.trim()) return;
                     handleSubmit && handleSubmit(value);

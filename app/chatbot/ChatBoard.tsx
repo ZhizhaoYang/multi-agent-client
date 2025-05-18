@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { UserOutlined } from "@ant-design/icons";
+import { UserOutlined, WarningOutlined } from "@ant-design/icons";
 import { Bubble } from "@ant-design/x"
 import type { GetProp, GetRef } from 'antd';
 import { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import { ChatStatus } from "./useChatbot";
 import { v4 as uuidv4 } from 'uuid';
 import MarkdownIt from 'markdown-it';
+import { Spin } from 'antd';
 
 // Initialize markdown-it instance
 const md = new MarkdownIt();
@@ -22,11 +23,14 @@ const INITIAL_WELCOME_MESSAGE: BubbleDataType = {
     },
 };
 
+const THINKING_BUBBLE_KEY = 'ai-thinking-bubble';
+
 interface ChatBoardProps {
     sseData?: string;
     sseStatus?: ChatStatus;
     userQuery?: string;
     threadId?: string;
+    chatError?: Error | null;
 }
 
 // Helper component to render HTML content safely
@@ -34,14 +38,12 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
     return <div dangerouslySetInnerHTML={{ __html: content }} />;
 };
 
-const ChatBoard = ({ sseData, sseStatus, userQuery, threadId }: ChatBoardProps) => {
+const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatBoardProps) => {
     const listRef = useRef<GetRef<typeof Bubble.List>>(null);
-    const [bubbleList, setBubbleList] = useState<BubbleDataType[]>([{
-        ...INITIAL_WELCOME_MESSAGE,
-        content: INITIAL_WELCOME_MESSAGE.content
-    }]);
+    const [bubbleList, setBubbleList] = useState<BubbleDataType[]>([INITIAL_WELCOME_MESSAGE]);
     const lastMessageRef = useRef<BubbleDataType | null>(null);
     const currentThreadIdRef = useRef<string | undefined>(threadId);
+    const displayedErrorRef = useRef<string | null>(null);
 
     const updateBubbleInList = useCallback((key: string | number, newProps: Partial<BubbleDataType>) => {
         setBubbleList(prevList =>
@@ -51,16 +53,19 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId }: ChatBoardProps) 
         );
     }, []);
 
+    const removeBubbleFromList = useCallback((key: string | number) => {
+        setBubbleList(prevList => prevList.filter(bubble => bubble.key !== key));
+    }, []);
+
     useEffect(() => {
         if (threadId && threadId !== currentThreadIdRef.current) {
-            setBubbleList([{
-                ...INITIAL_WELCOME_MESSAGE,
-                content: INITIAL_WELCOME_MESSAGE.content
-            }]);
+            setBubbleList([INITIAL_WELCOME_MESSAGE]);
             lastMessageRef.current = null;
             currentThreadIdRef.current = threadId;
+            displayedErrorRef.current = null;
+            removeBubbleFromList(THINKING_BUBBLE_KEY);
         }
-    }, [threadId]);
+    }, [threadId, removeBubbleFromList]);
 
     useEffect(() => {
         if (userQuery) {
@@ -69,14 +74,40 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId }: ChatBoardProps) 
                 role: 'user',
                 content: userQuery,
                 placement: 'end',
+                avatar: { icon: <UserOutlined />, style: { background: 'primary' } },
             };
-            setBubbleList(prev => [...prev, userBubble]);
+            setBubbleList(prevList => [...prevList, userBubble]);
+            lastMessageRef.current = null;
+            removeBubbleFromList(THINKING_BUBBLE_KEY);
+        }
+    }, [userQuery, removeBubbleFromList]);
+
+    useEffect(() => {
+        if (chatError && chatError.message !== displayedErrorRef.current) {
+            removeBubbleFromList(THINKING_BUBBLE_KEY);
+            const errorBubble: BubbleDataType = {
+                key: `error-${uuidv4()}`,
+                role: 'ai',
+                content: <MarkdownRenderer content={md.render(`**Error:** ${chatError.message}`)} />,
+                placement: 'start',
+                avatar: { icon: <WarningOutlined />, style: { background: '#fff2f0', color: '#ff4d4f' } },
+                style: {
+                    maxWidth: 600,
+                    border: '1px solid #ffccc7',
+                    backgroundColor: '#fff2f0'
+                },
+            };
+            setBubbleList(prevList => [...prevList, errorBubble]);
+            displayedErrorRef.current = chatError.message;
             lastMessageRef.current = null;
         }
-    }, [userQuery]);
+    }, [chatError, removeBubbleFromList]);
 
     const handleSseProcessing = useCallback((currentSseData: string | undefined, activeKey: string | number | null) => {
+        removeBubbleFromList(THINKING_BUBBLE_KEY);
+        displayedErrorRef.current = null;
         if (!currentSseData) return;
+
         const htmlContent = md.render(currentSseData);
         if (activeKey) {
             updateBubbleInList(activeKey, { content: <MarkdownRenderer content={htmlContent} />, typing: true });
@@ -94,53 +125,75 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId }: ChatBoardProps) 
             setBubbleList(prevList => [...prevList, newAiBubble]);
             lastMessageRef.current = newAiBubble;
         }
-    }, [updateBubbleInList]);
+    }, [updateBubbleInList, removeBubbleFromList]);
 
     const handleSseDone = useCallback((activeKey: string | number | null) => {
+        removeBubbleFromList(THINKING_BUBBLE_KEY);
         if (activeKey) {
-            const currentBubble = bubbleList.find(b => b.key === activeKey);
-            if (currentBubble) {
-                updateBubbleInList(activeKey, { typing: false });
-            }
+            updateBubbleInList(activeKey, { typing: false });
             lastMessageRef.current = null;
         }
-    }, [updateBubbleInList, bubbleList]);
+    }, [updateBubbleInList, removeBubbleFromList]);
 
     const handleSseError = useCallback((currentSseData: string | undefined, activeMsg: BubbleDataType | null, activeKey: string | number | null) => {
+        removeBubbleFromList(THINKING_BUBBLE_KEY);
         if (!activeKey || !activeMsg) return;
-        const errorMessage = "\nError processing message.";
+        const errorMessage = "\nChat stream error occurred.";
         const currentContentString = typeof activeMsg.content === 'string' ? activeMsg.content : (currentSseData || '');
-        let finalMarkdown: string;
-
-        if (currentContentString.includes("Error processing message")) {
-             finalMarkdown = currentContentString;
-        } else {
-             finalMarkdown = currentContentString + errorMessage;
-        }
+        let finalMarkdown = currentContentString.split('\n')[0] + errorMessage;
         const finalHtml = md.render(finalMarkdown);
-
         updateBubbleInList(activeKey, { content: <MarkdownRenderer content={finalHtml} />, typing: false });
         lastMessageRef.current = null;
-    }, [updateBubbleInList]);
+        displayedErrorRef.current = finalMarkdown;
+    }, [updateBubbleInList, removeBubbleFromList]);
 
+    // Orchestrator function for SSE display logic
+    const processSseForDisplay = useCallback((status: ChatStatus | undefined, data: string | undefined, currentActiveKey: string | number | null, currentActiveMessage: BubbleDataType | null, isThinkingBubblePresent: boolean) => {
+        switch (status) {
+            case ChatStatus.PROCESSING:
+                if (!data && !currentActiveKey && !isThinkingBubblePresent) {
+                    setBubbleList(prevList => {
+                        if (!prevList.some(b => b.key === THINKING_BUBBLE_KEY)) {
+                            const thinkingBubble: BubbleDataType = {
+                                key: THINKING_BUBBLE_KEY, role: 'ai', content: <Spin size="small" style={{ margin: 'auto' }}/>,
+                                placement: 'start', avatar: { icon: <UserOutlined />, style: { background: '#fde3cf' } },
+                                typing: true, style: { maxWidth: 100, textAlign: 'center' },
+                            };
+                            return [...prevList, thinkingBubble];
+                        }
+                        return prevList;
+                    });
+                } else if (data) {
+                    handleSseProcessing(data, currentActiveKey);
+                }
+                break;
+            case ChatStatus.DONE:
+                if (currentActiveKey || isThinkingBubblePresent) {
+                    handleSseDone(currentActiveKey);
+                }
+                break;
+            case ChatStatus.ERROR:
+                if (currentActiveKey) {
+                    handleSseError(data, currentActiveMessage, currentActiveKey);
+                }
+                break;
+            case ChatStatus.IDLE:
+                if (isThinkingBubblePresent) {
+                    removeBubbleFromList(THINKING_BUBBLE_KEY);
+                }
+                break;
+        }
+    }, [setBubbleList, handleSseProcessing, handleSseDone, handleSseError, removeBubbleFromList]);
+
+    // Effect to orchestrate SSE data and status changes
     useEffect(() => {
         const activeAIMessage = lastMessageRef.current;
         const activeAIMessageKey = (activeAIMessage?.role === 'ai' && activeAIMessage.key) ? activeAIMessage.key : null;
+        const thinkingBubbleExists = bubbleList.some(b => b.key === THINKING_BUBBLE_KEY);
 
-        switch (sseStatus) {
-            case ChatStatus.PROCESSING:
-                handleSseProcessing(sseData, activeAIMessageKey);
-                break;
-            case ChatStatus.DONE:
-                handleSseDone(activeAIMessageKey);
-                break;
-            case ChatStatus.ERROR:
-                handleSseError(sseData, activeAIMessage, activeAIMessageKey);
-                break;
-            case ChatStatus.IDLE:
-                break;
-        }
-    }, [sseData, sseStatus, handleSseProcessing, handleSseDone, handleSseError]);
+        processSseForDisplay(sseStatus, sseData, activeAIMessageKey, activeAIMessage, thinkingBubbleExists);
+
+    }, [sseStatus, sseData, processSseForDisplay]);
 
     return (
         <div>

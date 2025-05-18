@@ -11,7 +11,7 @@ export enum ChatStatus {
 }
 
 const useChatbot = () => {
-    const [data, setData] = useState<string>("");
+    const [currentAiResponse, setCurrentAiResponse] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
 
@@ -21,7 +21,7 @@ const useChatbot = () => {
         threadId?: string;
         userQuery?: string;
     }) => {
-        setData("");
+        setCurrentAiResponse("");
         setError(null);
         setStatus(ChatStatus.IDLE);
 
@@ -40,7 +40,7 @@ const useChatbot = () => {
                 try {
                     const eventData = JSON.parse(e.data);
                     if(eventData.chunk) {
-                        setData((prev) => prev + eventData.chunk);
+                        setCurrentAiResponse((prev) => prev + eventData.chunk);
                     }
                 } catch(parseError) {
                     console.error("Error parsing SSE data:", parseError);
@@ -70,7 +70,7 @@ const useChatbot = () => {
         }
     };
 
-    return { data, loading, fetchChatStream, error, status };
+    return { currentAiResponse, loading, fetchChatStream, error, status };
 };
 
 export default useChatbot;
