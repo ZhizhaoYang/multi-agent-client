@@ -108,7 +108,16 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
         displayedErrorRef.current = null;
         if (!currentSseData) return;
 
-        const htmlContent = md.render(currentSseData);
+        let htmlContent;
+        try {
+            htmlContent = md.render(currentSseData, { html: true });
+        } catch (error) {
+            console.error("Markdown rendering error in handleSseProcessing:", error);
+            // Fallback: render as preformatted text to avoid crashing
+            const escapedData = currentSseData.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            htmlContent = `<pre>${escapedData}</pre>`;
+        }
+
         if (activeKey) {
             updateBubbleInList(activeKey, { content: <MarkdownRenderer content={htmlContent} />, typing: true });
         } else {
@@ -125,7 +134,7 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
             setBubbleList(prevList => [...prevList, newAiBubble]);
             lastMessageRef.current = newAiBubble;
         }
-    }, [updateBubbleInList, removeBubbleFromList]);
+    }, [updateBubbleInList, removeBubbleFromList, setBubbleList]);
 
     const handleSseDone = useCallback((activeKey: string | number | null) => {
         removeBubbleFromList(THINKING_BUBBLE_KEY);
@@ -139,9 +148,21 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
         removeBubbleFromList(THINKING_BUBBLE_KEY);
         if (!activeKey || !activeMsg) return;
         const errorMessage = "\nChat stream error occurred.";
-        const currentContentString = typeof activeMsg.content === 'string' ? activeMsg.content : (currentSseData || '');
-        let finalMarkdown = currentContentString.split('\n')[0] + errorMessage;
-        const finalHtml = md.render(finalMarkdown);
+        // currentSseData is the latest raw string from SSE.
+        // Use currentSseData if available, otherwise, try to get some text from activeMsg if it was already rendered.
+        // However, activeMsg.content is a ReactNode. For simplicity, let's rely on currentSseData for content before error,
+        // or default to an empty string if not available.
+        const contentBeforeError = currentSseData || '';
+        let finalMarkdown = contentBeforeError.split('\n')[0] + errorMessage;
+
+        let finalHtml;
+        try {
+            finalHtml = md.render(finalMarkdown);
+        } catch (error) {
+            console.error("Markdown rendering error in handleSseError:", error);
+            const escapedMarkdown = finalMarkdown.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            finalHtml = `<pre>${escapedMarkdown}</pre>`;
+        }
         updateBubbleInList(activeKey, { content: <MarkdownRenderer content={finalHtml} />, typing: false });
         lastMessageRef.current = null;
         displayedErrorRef.current = finalMarkdown;
