@@ -37,3 +37,6 @@ next-env.d.ts
 # npm
 .npmrc
 pnpm-lock.yaml
+
+.cursor
+.vscode
