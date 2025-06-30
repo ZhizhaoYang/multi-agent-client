@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { UserOutlined, WarningOutlined } from "@ant-design/icons";
 import { Bubble } from "@ant-design/x"
-import type { GetProp, GetRef } from 'antd';
+import { Spin } from 'antd';
 import { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
-import { ChatStatus } from "./useChatbot";
 import { v4 as uuidv4 } from 'uuid';
 import MarkdownIt from 'markdown-it';
-import { Spin } from 'antd';
 
-// Initialize markdown-it instance
+import type { GetRef } from 'antd';
+
+import { ChatStatus } from "./useChatbot";
+
 const md = new MarkdownIt();
 
 const INITIAL_WELCOME_MESSAGE: BubbleDataType = {
@@ -113,7 +114,6 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
             htmlContent = md.render(currentSseData, { html: true });
         } catch (error) {
             console.error("Markdown rendering error in handleSseProcessing:", error);
-            // Fallback: render as preformatted text to avoid crashing
             const escapedData = currentSseData.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             htmlContent = `<pre>${escapedData}</pre>`;
         }
@@ -148,10 +148,6 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
         removeBubbleFromList(THINKING_BUBBLE_KEY);
         if (!activeKey || !activeMsg) return;
         const errorMessage = "\nChat stream error occurred.";
-        // currentSseData is the latest raw string from SSE.
-        // Use currentSseData if available, otherwise, try to get some text from activeMsg if it was already rendered.
-        // However, activeMsg.content is a ReactNode. For simplicity, let's rely on currentSseData for content before error,
-        // or default to an empty string if not available.
         const contentBeforeError = currentSseData || '';
         let finalMarkdown = contentBeforeError.split('\n')[0] + errorMessage;
 
@@ -178,7 +174,7 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
                             const thinkingBubble: BubbleDataType = {
                                 key: THINKING_BUBBLE_KEY, role: 'ai', content: <Spin size="small" style={{ margin: 'auto' }}/>,
                                 placement: 'start', avatar: { icon: <UserOutlined />, style: { background: '#fde3cf' } },
-                                typing: true, style: { maxWidth: 100, textAlign: 'center' },
+                                typing: true, style: { maxWidth: 100, textAlign: 'left' },
                             };
                             return [...prevList, thinkingBubble];
                         }
@@ -221,6 +217,9 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError }: ChatB
             <Bubble.List
                 ref={listRef}
                 items={bubbleList}
+                style={{
+                    textAlign: 'left',
+                }}
             />
         </div>
     )
