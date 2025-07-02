@@ -32,8 +32,13 @@ const useChatbot = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
 
+    // Reset loading state properly
+    const updateLoading = (value: boolean) => {
+        setLoading(value);
+    };
+
     const [status, setStatus] = useState<ChatStatus>(ChatStatus.IDLE);
-    const [_, setController] = useState<AbortController | null>(null);
+    const [controller, setController] = useState<AbortController | null>(null);
 
     // Pure states for thought chain data
     const [departmentTexts, setDepartmentTexts] = useState<Map<string, string>>(new Map());
@@ -59,7 +64,6 @@ const useChatbot = () => {
         }
 
         if(type === "thought_complete") {
-            // Mark department as complete
             setCompletedDepartments(prev => new Set(prev).add(source));
         }
     };
@@ -69,6 +73,42 @@ const useChatbot = () => {
         setDepartmentTexts(new Map());
         setActiveDepartments(new Set());
         setCompletedDepartments(new Set());
+    };
+
+    // Cancel current chat and reset everything
+    const cancelChat = () => {
+        // Abort the current SSE connection if it exists
+        if (controller) {
+            controller.abort();
+            setController(null);
+        }
+
+        // Reset all states to initial values
+        setCurrentAiResponse("");
+        updateLoading(false);
+        setError(null);
+        setStatus(ChatStatus.IDLE);
+
+        // Reset thought chain data
+        resetThoughtChain();
+    };
+
+    // Reset all chat data for new conversation
+    const resetChat = () => {
+        // Abort any ongoing SSE connection
+        if (controller) {
+            controller.abort();
+            setController(null);
+        }
+
+        // Reset all states to initial values
+        setCurrentAiResponse("");
+        updateLoading(false);
+        setError(null);
+        setStatus(ChatStatus.IDLE);
+
+        // Reset thought chain data
+        resetThoughtChain();
     };
 
     const fetchChatStream = async ({ threadId, userQuery }: {
@@ -81,7 +121,7 @@ const useChatbot = () => {
         resetThoughtChain(); // Reset thought chain data for new conversation
 
         try {
-            setLoading(true);
+            updateLoading(true);
             setStatus(ChatStatus.PROCESSING);
             const params = {
                 thread_id: threadId,
@@ -113,11 +153,6 @@ const useChatbot = () => {
                         const eventData = JSON.parse(e.data);
                         const type = eventData.type;
 
-                        // console.log("📨 SSE MESSAGE:", {
-                        //     type,
-                        //     data: eventData,
-                        // });
-
                         if(type === "thought" || type === "thought_complete") {
                             handleThoughtChunk(eventData);
 
@@ -125,8 +160,8 @@ const useChatbot = () => {
                             // console.log("final_output", eventData.chunk);
                             setCurrentAiResponse((prev) => prev + eventData.chunk);
 
-                        } else if(type === "done") {
-                            setLoading(false);
+                        } else if(type === "done" || type === "final_output_complete") {
+                            updateLoading(false);
                             setStatus(ChatStatus.DONE);
                             ctrl.abort();
                         }
@@ -134,6 +169,7 @@ const useChatbot = () => {
                         console.error("Error parsing SSE data:", parseError);
                         setError(new Error("Error parsing SSE data"));
                         setStatus(ChatStatus.ERROR);
+                        updateLoading(false);
                     }
                 },
 
@@ -142,19 +178,18 @@ const useChatbot = () => {
                     setError(new Error("SSE connection error"));
                     setStatus(ChatStatus.ERROR);
                     ctrl.abort();
-                    setLoading(false);
+                    updateLoading(false);
                 },
 
                 onclose() {
-                    console.log("SSE connection closed");
-                    setLoading(false);
+                    updateLoading(false);
                     setStatus(ChatStatus.DONE);
                 },
             });
         } catch(setupError) {
             console.error("Error setting up SSE connection:", setupError);
             setError(new Error("Failed to set up SSE connection"));
-            setLoading(false);
+            updateLoading(false);
             setStatus(ChatStatus.ERROR);
         }
     };
@@ -170,6 +205,8 @@ const useChatbot = () => {
         activeDepartments: Array.from(activeDepartments),
         completedDepartments: Array.from(completedDepartments),
         resetThoughtChain,
+        cancelChat,
+        resetChat,
     };
 };
 

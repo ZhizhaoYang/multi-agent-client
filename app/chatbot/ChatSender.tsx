@@ -9,10 +9,11 @@ interface ChatSenderProps {
     // onResponse?: (response: string) => void; // Removed redundant prop
     handleSubmit?: (question: string) => void;
     isLoading?: boolean;
+    handleCancel?: () => void;
 }
 
 // Renamed to ChatSender as it's the primary export now.
-const ChatSender: React.FC<ChatSenderProps> = ({ handleSubmit, isLoading }) => {
+const ChatSender: React.FC<ChatSenderProps> = ({ handleSubmit, isLoading, handleCancel }) => {
     const [value, setValue] = useState<string>('');
     const { message } = App.useApp(); // This requires <App> context from a parent.
 
@@ -33,7 +34,7 @@ const ChatSender: React.FC<ChatSenderProps> = ({ handleSubmit, isLoading }) => {
                 }}
                 onCancel={() => {
                     setValue('');
-                    message.error('Cancelled!');
+                    handleCancel && handleCancel();
                 }}
                 autoSize={{ minRows: 3, maxRows: 6 }}
             />

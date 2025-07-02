@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ThoughtChain } from '@ant-design/x';
 import { Card } from 'antd';
 
@@ -29,29 +29,81 @@ const styles: Partial<Record<SemanticType, React.CSSProperties>> = {
 
 const ThoughtChainBoard: React.FC<Props> = ({ items }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const previousItemsRef = useRef<ThoughtChainItem[]>([]);
 
   // Reset on new chat (when items array is empty)
   useEffect(() => {
     if (items.length === 0) {
       setExpandedKeys([]);
+      previousItemsRef.current = [];
     }
   }, [items.length]);
 
-  // Keep items collapsed by default - no auto-expansion
-  // Users can manually expand items they want to see
+  // Auto-expand new items and auto-collapse completed items
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    // Use setTimeout to defer state updates to next tick
+    const timeoutId = setTimeout(() => {
+      const currentKeys = items.map(item => item.key).filter((key): key is string => key !== undefined);
+      const previousKeys = previousItemsRef.current.map(item => item.key).filter((key): key is string => key !== undefined);
+
+      // Find new items (just appeared)
+      const newKeys = currentKeys.filter(key => !previousKeys.includes(key));
+
+      // Find items that just completed (changed from pending to success)
+      const completedKeys = items
+        .filter(item => {
+          if (!item.key) return false;
+          const previousItem = previousItemsRef.current.find(prev => prev.key === item.key);
+          return previousItem &&
+                 previousItem.status === 'pending' &&
+                 item.status === 'success';
+        })
+        .map(item => item.key)
+        .filter((key): key is string => key !== undefined);
+
+      if (newKeys.length > 0 || completedKeys.length > 0) {
+        setExpandedKeys(prevExpanded => {
+          let newExpanded = [...prevExpanded];
+
+          // Auto-expand new items
+          newKeys.forEach(key => {
+            if (!newExpanded.includes(key)) {
+              newExpanded.push(key);
+            }
+          });
+
+          // Auto-collapse completed items
+          completedKeys.forEach(key => {
+            newExpanded = newExpanded.filter(expandedKey => expandedKey !== key);
+          });
+
+          return newExpanded;
+        });
+      }
+
+      // Update previous items for next comparison
+      previousItemsRef.current = [...items];
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [items]);
+
+  const handleExpand = useCallback((keys: string[]) => {
+    // User can still manually control expansion/collapse
+    setExpandedKeys(keys);
+  }, []);
 
   const collapsible: ThoughtChainProps['collapsible'] = {
     expandedKeys,
-    onExpand: (keys: string[]) => {
-      // User takes control - they can expand/collapse as they wish
-      setExpandedKeys(keys);
-    },
+    onExpand: handleExpand,
   };
 
   return (
-    <Card style={{ width: '100%' }} title="Chain of Thought">
+    // <Card style={{ width: '100%' }} title="Chain of Thought">
       <ThoughtChain items={items} collapsible={collapsible} styles={styles}/>
-    </Card>
+    // </Card>
   )
 }
 
