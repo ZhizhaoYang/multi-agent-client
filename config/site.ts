@@ -1,3 +1,5 @@
+import { redirect } from "next/dist/server/api-utils";
+
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
@@ -5,20 +7,8 @@ export const siteConfig = {
     description: "Make beautiful websites regardless of your design experience.",
     navItems: [
         {
-            label: "Home",
-            href: "/",
-        },
-        {
-            label: "Chatbot",
+            label: "Playground",
             href: "/chatbot",
-        },
-        {
-            label: "Pricing",
-            href: "/pricing",
-        },
-        {
-            label: "Blog",
-            href: "/blog",
         },
         {
             label: "About",

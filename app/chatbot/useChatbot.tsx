@@ -45,17 +45,21 @@ const useChatbot = () => {
     const [activeDepartments, setActiveDepartments] = useState<Set<string>>(new Set());
     const [completedDepartments, setCompletedDepartments] = useState<Set<string>>(new Set());
 
-                // Handle thought chunks from departments
+                // Handle thought chunks from departments - using functional updates to avoid stale closures
     const handleThoughtChunk = (eventData: any) => {
         const { chunk, source, segment_id, type } = eventData;
 
         if(type === "thought") {
-            // Add department to active list if new
-            if(!activeDepartments.has(source)) {
-                setActiveDepartments(prev => new Set(prev).add(source));
-            }
+            // Add department to active list if new - using functional update
+            setActiveDepartments(prev => {
+                if (!prev.has(source)) {
+                    console.log(`🆕 Adding department: ${source}`);
+                    return new Set(prev).add(source);
+                }
+                return prev;
+            });
 
-            // Update department text content
+            // Update department text content - using functional update
             setDepartmentTexts(prev => {
                 const currentText = prev.get(source) || "";
                 const updatedText = insertCharAtPosition(currentText, chunk, segment_id);
@@ -64,6 +68,7 @@ const useChatbot = () => {
         }
 
         if(type === "thought_complete") {
+            // Mark department as complete - using functional update
             setCompletedDepartments(prev => new Set(prev).add(source));
         }
     };
@@ -111,14 +116,25 @@ const useChatbot = () => {
         resetThoughtChain();
     };
 
-    const fetchChatStream = async ({ threadId, userQuery }: {
+        const fetchChatStream = async ({ threadId, userQuery }: {
         threadId?: string;
         userQuery?: string;
     }) => {
+        // Abort any existing connection first
+        if (controller) {
+            controller.abort();
+            setController(null);
+        }
+
         setCurrentAiResponse("");
         setError(null);
         setStatus(ChatStatus.IDLE);
-        resetThoughtChain(); // Reset thought chain data for new conversation
+
+        // Reset thought chain data at the start of new conversation
+        resetThoughtChain();
+
+        // Small delay to ensure state is reset properly
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         try {
             updateLoading(true);
@@ -157,7 +173,6 @@ const useChatbot = () => {
                             handleThoughtChunk(eventData);
 
                         } else if(type === "final_output" && eventData.chunk) {
-                            // console.log("final_output", eventData.chunk);
                             setCurrentAiResponse((prev) => prev + eventData.chunk);
 
                         } else if(type === "done" || type === "final_output_complete") {

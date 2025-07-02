@@ -1,15 +1,13 @@
-import { title } from "@/components/primitives";
+"use client";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
-    return (
-        <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-            <div className="inline-block max-w-xl text-center justify-center">
-                <span className={title()}>
-                    <span className={title({ color: "violet" })}>
-                        A demo for testing AI driven apps
-                    </span>
-                </span>
-            </div>
-        </section>
-    );
+export default function HomePage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace('/chatbot');
+    }, [router]);
+
+    // return <div>Redirecting to chatbot...</div>;
 }

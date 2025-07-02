@@ -55,14 +55,12 @@ export default function ChatbotPage() {
         message.info(`Question: ${question} (Thread: ${threadId.substring(0, 8)})`);
         setUserQuery(question);
 
-        // Reset thought chain data immediately for new turn
-        resetThoughtChain();
-
         // Auto-open thought chain when user sends a query
         setOpenThoughtChain(true);
 
+        // Note: resetThoughtChain moved to fetchChatStream for better timing
         await fetchChatStream({ userQuery: question, threadId });
-    }, [threadId, fetchChatStream, resetThoughtChain]);
+    }, [threadId, fetchChatStream]);
 
     const handleNewChat = useCallback(() => {
         // Generate new thread ID
@@ -97,7 +95,7 @@ export default function ChatbotPage() {
     return (
         <div className="w-full">
             <div className="flex justify-center items-center mb-4">
-                <div className={`${title()}`} style={{ color: "rgb(77, 107, 254)" }}>Chatbot Demo</div>
+                <div className={`${title()}`} style={{ color: "rgb(77, 107, 254)" }}>Supervisor Chatbot</div>
             </div>
             <div className="flex justify-end items-center mb-4 gap-4">
                 <Button onClick={handleNewChat} type="primary">New Chat</Button>
