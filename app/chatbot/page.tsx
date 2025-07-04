@@ -47,7 +47,7 @@ export default function ChatbotPage() {
         completedDepartments
     });
 
-        const handleSenderSubmit = useCallback(async (question: string) => {
+    const handleSenderSubmit = useCallback(async (question: string) => {
         if(!threadId) {
             message.error("Thread ID is not available. Please try again.");
             return;

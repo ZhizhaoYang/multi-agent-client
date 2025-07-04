@@ -55,7 +55,7 @@ const useChatbot = () => {
                 if (!prev.has(source)) {
                     console.log(`🆕 Adding department: ${source}`);
                     return new Set(prev).add(source);
-                }
+            }
                 return prev;
             });
 
@@ -116,7 +116,7 @@ const useChatbot = () => {
         resetThoughtChain();
     };
 
-        const fetchChatStream = async ({ threadId, userQuery }: {
+    const fetchChatStream = async ({ threadId, userQuery }: {
         threadId?: string;
         userQuery?: string;
     }) => {

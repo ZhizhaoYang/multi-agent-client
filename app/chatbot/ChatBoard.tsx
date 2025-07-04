@@ -210,9 +210,9 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
                 case ChatStatus.DONE:
                     setBubbleList(prevList => {
                         const thinkingBubbleExists = prevList.some(b => b.key === THINKING_BUBBLE_KEY);
-                        if (activeAIMessageKey || thinkingBubbleExists) {
-                            handleSseDone(activeAIMessageKey);
-                        }
+                    if (activeAIMessageKey || thinkingBubbleExists) {
+                        handleSseDone(activeAIMessageKey);
+                    }
                         return prevList;
                     });
                     break;
@@ -222,7 +222,7 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
                     }
                     break;
                 case ChatStatus.IDLE:
-                    setBubbleList(prevList => prevList.filter(bubble => bubble.key !== THINKING_BUBBLE_KEY));
+                        setBubbleList(prevList => prevList.filter(bubble => bubble.key !== THINKING_BUBBLE_KEY));
                     break;
             }
         }, 0);
