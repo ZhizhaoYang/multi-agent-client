@@ -10,7 +10,7 @@ export enum ChatStatus {
     DONE = "done",
 }
 
-const requestUrl = `${baseURL}chat-test`;
+const requestUrl = `${baseURL}/chat-test`;
 
 // Helper function to insert character at specific position
 const insertCharAtPosition = (currentText: string, newChar: string, position: number): string => {
