@@ -2,6 +2,7 @@ import { useState } from "react";
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 import { baseURL } from "@/utils/request";
+import { StreamBufferManager } from "@/lib/stream-buffer";
 
 export enum ChatStatus {
     IDLE = "idle",
@@ -12,19 +13,12 @@ export enum ChatStatus {
 
 const requestUrl = `${baseURL}/chat-test`;
 
-// Helper function to insert character at specific position
-const insertCharAtPosition = (currentText: string, newChar: string, position: number): string => {
-    const textArray = currentText.split('');
-
-    // Extend array if needed (handle out-of-order arrival)
-    while(textArray.length < position) {
-        textArray.push('');
+// Create a unique key for source + task combination
+const createSourceKey = (source: string, taskId?: string): string => {
+    if (taskId) {
+        return `${source}::${taskId}`;
     }
-
-    // Insert character at correct position (1-indexed to 0-indexed)
-    textArray[position - 1] = newChar;
-
-    return textArray.join('');
+    return source; // For non-task-specific streams (supervisor, assessment, etc.)
 };
 
 const useChatbot = () => {
@@ -40,44 +34,57 @@ const useChatbot = () => {
     const [status, setStatus] = useState<ChatStatus>(ChatStatus.IDLE);
     const [controller, setController] = useState<AbortController | null>(null);
 
-    // Pure states for thought chain data
-    const [departmentTexts, setDepartmentTexts] = useState<Map<string, string>>(new Map());
-    const [activeDepartments, setActiveDepartments] = useState<Set<string>>(new Set());
-    const [completedDepartments, setCompletedDepartments] = useState<Set<string>>(new Set());
+    // Stream buffer manager for ordered segment handling
+    const [bufferManager] = useState(() => new StreamBufferManager());
 
-                // Handle thought chunks from departments - using functional updates to avoid stale closures
+    // Pure states for thought chain data - now handles ALL sources (departments + HQ nodes)
+    const [sourceTexts, setSourceTexts] = useState<Map<string, string>>(new Map());
+    const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
+    const [completedSources, setCompletedSources] = useState<Set<string>>(new Set());
+
+    // Handle thought chunks from ALL nodes - now using StreamBufferManager
     const handleThoughtChunk = (eventData: any) => {
-        const { chunk, source, segment_id, type } = eventData;
+        const { chunk, source, segment_id, task_id, type } = eventData;
 
         if(type === "thought") {
-            // Add department to active list if new - using functional update
-            setActiveDepartments(prev => {
-                if (!prev.has(source)) {
-                    console.log(`🆕 Adding department: ${source}`);
-                    return new Set(prev).add(source);
-            }
+            const sourceKey = createSourceKey(source, task_id);
+
+            // Add ALL sources to active list (departments AND HQ nodes)
+            setActiveSources(prev => {
+                if (!prev.has(sourceKey)) {
+                    console.log(`🆕 Adding thought source: ${sourceKey}`);
+                    return new Set(prev).add(sourceKey);
+                }
                 return prev;
             });
 
-            // Update department text content - using functional update
-            setDepartmentTexts(prev => {
-                const currentText = prev.get(source) || "";
-                const updatedText = insertCharAtPosition(currentText, chunk, segment_id);
-                return new Map(prev).set(source, updatedText);
-            });
+            // Use buffer manager to handle ordered segments for ALL sources
+            const displayText = bufferManager.addSegment(sourceKey, segment_id, chunk);
+
+            // Update source text content with buffered result
+            setSourceTexts(prev => new Map(prev).set(sourceKey, displayText));
         }
 
         if(type === "thought_complete") {
-            // Mark department as complete - using functional update
-            setCompletedDepartments(prev => new Set(prev).add(source));
+            const sourceKey = createSourceKey(source, task_id);
+
+            // Mark stream as complete in buffer manager
+            bufferManager.markComplete(sourceKey);
+
+            // Mark source as complete - using functional update
+            setCompletedSources(prev => new Set(prev).add(sourceKey));
         }
     };
 
     // Reset thought chain states
     const resetThoughtChain = () => {
-        setDepartmentTexts(new Map());
-        setActiveDepartments(new Set());
-        setCompletedDepartments(new Set());
+        // Reset buffer manager
+        bufferManager.reset();
+
+        // Reset React state
+        setSourceTexts(new Map());
+        setActiveSources(new Set());
+        setCompletedSources(new Set());
     };
 
     // Cancel current chat and reset everything
@@ -173,9 +180,13 @@ const useChatbot = () => {
                             handleThoughtChunk(eventData);
 
                         } else if(type === "final_output" && eventData.chunk) {
-                            setCurrentAiResponse((prev) => prev + eventData.chunk);
+                            // Use buffer manager for final output too (prevent out-of-order issues)
+                            const finalResponseText = bufferManager.addSegment("final_output", eventData.segment_id, eventData.chunk);
+                            setCurrentAiResponse(finalResponseText);
 
-                        } else if(type === "done" || type === "final_output_complete") {
+                        } else if(type === "final_output_complete") {
+                            // Mark final response as complete and end processing
+                            bufferManager.markComplete("final_output");
                             updateLoading(false);
                             setStatus(ChatStatus.DONE);
                             ctrl.abort();
@@ -215,10 +226,10 @@ const useChatbot = () => {
         fetchChatStream,
         error,
         status,
-        // Pure thought chain data exports
-        departmentTexts,
-        activeDepartments: Array.from(activeDepartments),
-        completedDepartments: Array.from(completedDepartments),
+        // Pure thought chain data exports (backward compatible names)
+        departmentTexts: sourceTexts,
+        activeDepartments: Array.from(activeSources),
+        completedDepartments: Array.from(completedSources),
         resetThoughtChain,
         cancelChat,
         resetChat,

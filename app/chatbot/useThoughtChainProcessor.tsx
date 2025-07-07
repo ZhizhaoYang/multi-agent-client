@@ -40,6 +40,27 @@ const departmentConfig: Record<string, {
     }
 };
 
+// Parse department key to extract department name and task info
+const parseDepartmentKey = (departmentKey: string): {
+    departmentName: string;
+    taskId?: string;
+    displayTitle: string;
+} => {
+    if (departmentKey.includes('::')) {
+        const [departmentName, taskId] = departmentKey.split('::');
+        return {
+            departmentName,
+            taskId,
+            displayTitle: `${departmentName} (Task: ${taskId.slice(0, 8)}...)` // Show first 8 chars of task ID
+        };
+    }
+    return {
+        departmentName: departmentKey,
+        taskId: undefined,
+        displayTitle: departmentKey
+    };
+};
+
 interface UseThoughtChainProcessorParams {
     departmentTexts: Map<string, string>;
     activeDepartments: string[];
@@ -55,15 +76,17 @@ export const useThoughtChainProcessor = ({
     const thoughtChainItems = useMemo<ThoughtChainItem[]>(() => {
         const items: ThoughtChainItem[] = [];
 
-        activeDepartments.forEach(department => {
-            const config = departmentConfig[department] || {
-                title: department,
+        activeDepartments.forEach(departmentKey => {
+            const { departmentName, taskId, displayTitle } = parseDepartmentKey(departmentKey);
+
+            const config = departmentConfig[departmentName] || {
+                title: departmentName,
                 icon: <QuestionOutlined />,
                 description: "Processing..."
             };
 
-            const textContent = departmentTexts.get(department) || "";
-            const isCompleted = completedDepartments.includes(department);
+            const textContent = departmentTexts.get(departmentKey) || "";
+            const isCompleted = completedDepartments.includes(departmentKey);
 
                         // Display content as plain text with preserved line breaks via CSS
             const content = textContent.trim()
@@ -71,9 +94,9 @@ export const useThoughtChainProcessor = ({
                 : "Initializing...";
 
             items.push({
-                key: department,
-                title: config.title,
-                description: config.description,
+                key: departmentKey, // Use full key (department::task_id) for uniqueness
+                title: displayTitle, // Show department + task info
+                description: taskId ? `${config.description} (Task ${taskId.slice(0, 8)}...)` : config.description,
                 icon: config.icon,
                 status: isCompleted ? 'success' : 'pending',
                 content: content
