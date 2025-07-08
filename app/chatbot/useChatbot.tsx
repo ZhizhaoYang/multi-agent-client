@@ -185,11 +185,14 @@ const useChatbot = () => {
                             setCurrentAiResponse(finalResponseText);
 
                         } else if(type === "final_output_complete") {
-                            // Mark final response as complete and end processing
+                            // Mark final response as complete - data layer
                             bufferManager.markComplete("final_output");
+
+                            // Update UI immediately for user experience
                             updateLoading(false);
                             setStatus(ChatStatus.DONE);
-                            ctrl.abort();
+
+                            // Trust backend to close connection naturally - prevents race conditions
                         }
                     } catch(parseError) {
                         console.error("Error parsing SSE data:", parseError);
