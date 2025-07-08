@@ -11,7 +11,7 @@ export enum ChatStatus {
     DONE = "done",
 }
 
-const requestUrl = `${baseURL}/chat-test`;
+const requestUrl = `${baseURL}/chat-stream`;
 
 // Create a unique key for source + task combination
 const createSourceKey = (source: string, taskId?: string): string => {
