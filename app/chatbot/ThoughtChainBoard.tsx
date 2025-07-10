@@ -1,10 +1,9 @@
 "use client";
 
+import type { ThoughtChainItem, ThoughtChainProps } from '@ant-design/x';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ThoughtChain } from '@ant-design/x';
-import { Card } from 'antd';
-
-import type { ThoughtChainItem, ThoughtChainProps } from '@ant-design/x';
 import { SemanticType } from '@ant-design/x/es/thought-chain';
 
 interface Props {
@@ -102,7 +101,7 @@ const ThoughtChainBoard: React.FC<Props> = ({ items }) => {
 
   return (
     // <Card style={{ width: '100%' }} title="Chain of Thought">
-      <ThoughtChain items={items} collapsible={collapsible} styles={styles}/>
+      <ThoughtChain collapsible={collapsible} items={items} styles={styles}/>
     // </Card>
   )
 }

@@ -3,14 +3,14 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { message, Button, Drawer } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
-import _ from "lodash";
-import { title } from "@/components/primitives";
 
-import useChatbot, { ChatStatus } from "./useChatbot";
+import useChatbot from "./useChatbot";
 import useThoughtChainProcessor from "./useThoughtChainProcessor";
 import ChatBoard from "./ChatBoard";
 import ChatSender from "./ChatSender";
 import ThoughtChainBoard from "./ThoughtChainBoard";
+
+import { title } from "@/components/primitives";
 
 
 export default function ChatbotPage() {
@@ -23,7 +23,7 @@ export default function ChatbotPage() {
         departmentTexts,
         activeDepartments,
         completedDepartments,
-        resetThoughtChain,
+
         cancelChat,
         resetChat,
     } = useChatbot();
@@ -98,8 +98,8 @@ export default function ChatbotPage() {
                 <div className={`${title()}`} style={{ color: "rgb(77, 107, 254)" }}>Supervisor Chatbot</div>
             </div>
             <div className="flex justify-end items-center mb-4 gap-4">
-                <Button onClick={handleNewChat} type="primary">New Chat</Button>
-                <Button onClick={() => setOpenThoughtChain(!openThoughtChain)} type="default">Thought Chain</Button>
+                <Button type="primary" onClick={handleNewChat}>New Chat</Button>
+                <Button type="default" onClick={() => setOpenThoughtChain(!openThoughtChain)}>Thought Chain</Button>
             </div>
 
 
@@ -109,30 +109,30 @@ export default function ChatbotPage() {
                 <div className={`${openThoughtChain ? "w-1/2" : "w-full"}`}>
                     <div className="mb-10">
                         <ChatBoard
-                            sseData={sseData}
-                            sseStatus={sseStatus}
-                            userQuery={userQuery}
-                            threadId={threadId}
                             chatError={chatError}
                             resetTrigger={resetTrigger}
+                            sseData={sseData}
+                            sseStatus={sseStatus}
+                            threadId={threadId}
+                            userQuery={userQuery}
                         />
                     </div>
 
                     <div>
                         <ChatSender
+                            handleCancel={handleCancel}
                             handleSubmit={handleSenderSubmit}
                             isLoading={loading}
-                            handleCancel={handleCancel}
                         />
                     </div>
                 </div>
 
                 <Drawer
+                    open={openThoughtChain}
+                    placement="right"
                     title="Thought Chain"
                     width={500}
-                    open={openThoughtChain}
                     onClose={() => setOpenThoughtChain(false)}
-                    placement="right"
                 >
                     <ThoughtChainBoard items={thoughtChainItems} />
                 </Drawer>

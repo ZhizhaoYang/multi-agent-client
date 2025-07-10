@@ -9,5 +9,5 @@ export default function HomePage() {
         router.replace('/chatbot');
     }, [router]);
 
-    // return <div>Redirecting to chatbot...</div>;
+    return <div>Redirecting to chatbot...</div>;
 }

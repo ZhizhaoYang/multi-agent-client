@@ -1,6 +1,7 @@
+import type { ThoughtChainItem } from '@ant-design/x';
+
 import { useMemo } from 'react';
 import { CalculatorOutlined, SearchOutlined, BulbOutlined, QuestionOutlined, AuditOutlined } from '@ant-design/icons';
-import type { ThoughtChainItem } from '@ant-design/x';
 
 // Department configuration for ThoughtChain UI
 const departmentConfig: Record<string, {

@@ -1,3 +1,5 @@
+import type { GetRef } from 'antd';
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { UserOutlined, WarningOutlined } from "@ant-design/icons";
 import { Bubble } from "@ant-design/x"
@@ -6,7 +8,6 @@ import { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import { v4 as uuidv4 } from 'uuid';
 import MarkdownIt from 'markdown-it';
 
-import type { GetRef } from 'antd';
 
 import { ChatStatus } from "./useChatbot";
 
@@ -55,9 +56,7 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
         );
     }, []);
 
-    const removeBubbleFromList = useCallback((key: string | number) => {
-        setBubbleList(prevList => prevList.filter(bubble => bubble.key !== key));
-    }, []);
+
 
     useEffect(() => {
         if (threadId && threadId !== currentThreadIdRef.current) {
