@@ -2,6 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add custom markdown prose styles */
+.prose {
+  max-width: none;
+}
+
+.prose h1 {
+  @apply text-4xl font-bold mb-6 text-primary;
+}
+
+.prose h2 {
+  @apply text-3xl font-semibold mb-4 mt-8 text-primary border-b border-divider pb-2;
+}
+
+.prose h3 {
+  @apply text-2xl font-semibold mb-3 mt-6 text-foreground;
+}
+
+.prose h4 {
+  @apply text-xl font-medium mb-2 mt-4 text-foreground;
+}
+
+.prose p {
+  @apply text-foreground mb-4 leading-relaxed;
+}
+
+.prose ul {
+  @apply list-disc list-inside mb-4 space-y-2;
+}
+
+.prose ol {
+  @apply list-decimal list-inside mb-4 space-y-2;
+}
+
+.prose li {
+  @apply text-foreground;
+}
+
+.prose strong {
+  @apply font-semibold text-primary;
+}
+
+.prose code {
+  @apply bg-content2 text-primary px-2 py-1 rounded text-sm font-mono;
+}
+
+.prose pre {
+  @apply bg-content1 border border-divider rounded-lg p-4 overflow-x-auto mb-4;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0 text-sm;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary pl-4 py-2 bg-content2 rounded-r-lg mb-4 italic;
+}
+
+.prose a {
+  @apply text-primary hover:text-primary-600 underline;
+}
+
+.prose table {
+  @apply w-full border-collapse border border-divider mb-4;
+}
+
+.prose th,
+.prose td {
+  @apply border border-divider px-3 py-2 text-left;
+}
+
+.prose th {
+  @apply bg-content2 font-semibold;
+}
+
+.prose hr {
+  @apply border-divider my-8;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .dark .prose h1,
+  .dark .prose h2,
+  .dark .prose strong {
+    @apply text-primary-400;
+  }
+
+  .dark .prose h3 {
+    @apply text-secondary-400;
+  }
+
+  .dark .prose h4 {
+    @apply text-foreground;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

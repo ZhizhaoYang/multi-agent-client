@@ -1,3 +1,4 @@
+"use client";
 import type { GetRef } from 'antd';
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -6,12 +7,9 @@ import { Bubble } from "@ant-design/x"
 import { Spin } from 'antd';
 import { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import { v4 as uuidv4 } from 'uuid';
-import MarkdownIt from 'markdown-it';
-
+import ReactMarkdown from 'react-markdown';
 
 import { ChatStatus } from "./useChatbot";
-
-const md = new MarkdownIt();
 
 const INITIAL_WELCOME_MESSAGE: BubbleDataType = {
     key: 'welcome',
@@ -36,9 +34,9 @@ interface ChatBoardProps {
     resetTrigger?: number; // When this changes, reset the chat board
 }
 
-// Helper component to render HTML content safely
+// Helper component to render markdown content
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-    return <div dangerouslySetInnerHTML={{ __html: content }} />;
+    return <ReactMarkdown>{content}</ReactMarkdown>;
 };
 
 const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTrigger }: ChatBoardProps) => {
@@ -95,7 +93,7 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
                     const errorBubble: BubbleDataType = {
                         key: `error-${uuidv4()}`,
                         role: 'ai',
-                        content: <MarkdownRenderer content={md.render(`**Error:** ${chatError.message}`)} />,
+                        content: <MarkdownRenderer content={`**Error:** ${chatError.message}`} />,
                         placement: 'start',
                         avatar: { icon: <WarningOutlined />, style: { background: '#fff2f0', color: '#ff4d4f' } },
                         style: {
@@ -126,23 +124,14 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
         displayedErrorRef.current = null;
         if (!currentSseData) return;
 
-        let htmlContent;
-        try {
-            htmlContent = md.render(currentSseData, { html: true });
-        } catch (error) {
-            console.error("Markdown rendering error in handleSseProcessing:", error);
-            const escapedData = currentSseData.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            htmlContent = `<pre>${escapedData}</pre>`;
-        }
-
         if (activeKey) {
-            updateBubbleInList(activeKey, { content: <MarkdownRenderer content={htmlContent} />, typing: true });
+            updateBubbleInList(activeKey, { content: <MarkdownRenderer content={currentSseData} />, typing: true });
         } else {
             const newAiBubbleKey = `ai-${uuidv4()}`;
             const newAiBubble: BubbleDataType = {
                 key: newAiBubbleKey,
                 role: 'ai',
-                content: <MarkdownRenderer content={htmlContent} />,
+                content: <MarkdownRenderer content={currentSseData} />,
                 placement: 'start',
                 avatar: { icon: <UserOutlined />, style: { background: '#fde3cf' } },
                 typing: true,
@@ -166,17 +155,9 @@ const ChatBoard = ({ sseData, sseStatus, userQuery, threadId, chatError, resetTr
         if (!activeKey || !activeMsg) return;
         const errorMessage = "\nChat stream error occurred.";
         const contentBeforeError = currentSseData || '';
-        let finalMarkdown = contentBeforeError.split('\n')[0] + errorMessage;
+        const finalMarkdown = contentBeforeError.split('\n')[0] + errorMessage;
 
-        let finalHtml;
-        try {
-            finalHtml = md.render(finalMarkdown);
-        } catch (error) {
-            console.error("Markdown rendering error in handleSseError:", error);
-            const escapedMarkdown = finalMarkdown.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            finalHtml = `<pre>${escapedMarkdown}</pre>`;
-        }
-        updateBubbleInList(activeKey, { content: <MarkdownRenderer content={finalHtml} />, typing: false });
+        updateBubbleInList(activeKey, { content: <MarkdownRenderer content={finalMarkdown} />, typing: false });
         lastMessageRef.current = null;
         displayedErrorRef.current = finalMarkdown;
     }, [updateBubbleInList]);
