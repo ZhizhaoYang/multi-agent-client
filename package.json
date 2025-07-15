@@ -3,9 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
+    "dev": "cross-env NODE_ENV=development next dev --turbopack",
+    "dev:prod": "cross-env NODE_ENV=production next dev --turbopack",
+    "dev:local": "cross-env NODE_ENV=development NEXT_PUBLIC_API_URL=http://localhost:8000 next dev --turbopack",
+    "build": "cross-env NODE_ENV=production next build",
+    "build:dev": "cross-env NODE_ENV=development next build",
+    "start": "cross-env NODE_ENV=production next start",
+    "start:dev": "cross-env NODE_ENV=development next start",
     "lint": "eslint --fix"
   },
   "dependencies": {
@@ -66,6 +70,7 @@
     "@typescript-eslint/eslint-plugin": "8.31.1",
     "@typescript-eslint/parser": "8.31.1",
     "autoprefixer": "10.4.21",
+    "cross-env": "^7.0.3",
     "eslint": "9.25.1",
     "eslint-config-next": "15.3.1",
     "eslint-config-prettier": "10.1.2",
