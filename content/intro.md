@@ -41,28 +41,33 @@ User Query → Assessment → Supervisor → Departments → Aggregation → Res
 
 &nbsp;
 #### Web Department
-- **Purpose**: Real-time web search and data retrieval
-- **Capabilities**:
+**Purpose**: Real-time web search and data retrieval
+
+**Capabilities**:
   - Current events and news
   - Weather information
   - Online research
   - Up-to-date factual data
-- **Tools**: Tavily search integration
+
+**Tools**: Tavily search integration
 
 &nbsp;
 #### Math Department
-- **Purpose**: Mathematical computations and problem-solving
-- **Capabilities**:
+**Purpose**: Mathematical computations and problem-solving
+
+**Capabilities**:
   - Complex calculations
   - Algebraic problem solving
   - Statistical analysis
   - Step-by-step mathematical reasoning
-- **Tools**: Advanced calculator and symbolic math
+
+**Tools**: Advanced calculator and symbolic math
 
 &nbsp;
 #### General Knowledge Department
-- **Purpose**: General inquiries and conversational AI
-- **Capabilities**:
+**Purpose**: General inquiries and conversational AI
+
+**Capabilities**:
   - General knowledge questions
   - Conversational responses
   - Creative writing
@@ -144,6 +149,27 @@ Solve 15 × 23 and explain the multiplication algorithm.
 What's the current price of Tesla stock, calculate the profit from buying 10 shares, and explain what stock trading means.
 
 Find the latest iPhone price, calculate the monthly cost if paid over 12 months, and explain how phone financing works.
+
+&nbsp;
+## Project Roadmap
+
+### Completed Features
+
+- **Multiple ReAct Agents** - Specialized departments (Web, Math, General Knowledge) with ReAct reasoning
+- **Persistence** - Conversation history and state management across sessions
+- **Streaming** - Real-time character-by-character response streaming
+- **Chain of Thought** - Transparent AI reasoning process visualization
+- **Supervisor Mode** - Intelligent task routing and coordination between departments
+- **Parallel Tasking** - Multiple departments working simultaneously on complex queries
+
+### Planned Features
+
+- **Human in the Loop** - User intervention and approval workflows for critical decisions
+- **User System** - Multi-user support with authentication and personalization
+- **Partially Streaming Structured Output** - Streaming responses with structured data (JSON, tables, etc.)
+- **Enhanced Persistence** - Advanced conversation management and search capabilities
+- **Time Travel** - Ability to revisit and modify previous conversation states
+- **Prompts Management** - Dynamic prompt editing and version control system
 
 &nbsp;
 ## Repository
